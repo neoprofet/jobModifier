@@ -20,7 +20,7 @@ public class CodeInjector {
      * builds paths to each job, and injects {@code newCode} into them.
      *
      * @param routeItemPath the file system path to the .item file of the route
-     * @param newCode the code block to inject into each referenced job
+     * @param newCode       the code block to inject into each referenced job
      */
     public static void injectCodeToAllJobsOfRoute(String routeItemPath, String newCode) {
         try {
@@ -83,6 +83,17 @@ public class CodeInjector {
                     }
                 }
 
+                if ("Latest".equalsIgnoreCase(jobVersion)) {
+                    Optional<String> latestItem = LatestVersionResolver.findLatestVersion(
+                            FileHelper.resolveSubdirectoryUpwards(new File(routeItemPath).getCanonicalFile(), "process"),
+                            jobName);
+                    if (latestItem.isPresent()) {
+                        jobVersion = latestItem.get();
+                    } else {
+                        throw new IOException("Job version not resolved");
+                    }
+                }
+
                 if (!jobName.isBlank() && !jobVersion.isBlank()) {
                     jobNamesAndVersions.put(jobName, jobVersion);
                 }
@@ -95,101 +106,133 @@ public class CodeInjector {
      * Constructs the absolute path to a Talend job .item file based on the route file location,
      * job name, and version.
      *
-     * <p>Traverses upward from the given route path to find the project root containing a "routes" directory,
-     * then builds the path to the corresponding job file under the "process" folder.
+     * <p>Traverses upward from the given route path to locate the project root folder
+     * that contains a "routes" directory. Then searches recursively in the "process" directory
+     * for the job .item file corresponding to the specified name and version.
      *
      * @param routeItemPath the path to the route .item file
-     * @param jobName the name of the job to locate
-     * @param version the version of the job
+     * @param jobName       the name of the job to locate
+     * @param version       the version of the job
      * @return the absolute path to the job's .item file
-     * @throws IOException if the project folder cannot be located
+     * @throws IOException if the project folder or the job file cannot be found
      */
+
 
     private static String buildJobFilePathByRouteItemPath(String routeItemPath, String jobName, String version) throws IOException {
         File routeFile = new File(routeItemPath).getCanonicalFile();
-        File projectDir = routeFile.getParentFile();
+        File processDir = FileHelper.resolveSubdirectoryUpwards(routeFile, "process");
 
-        while (projectDir != null && !new File(projectDir, "routes").exists()) {
-            projectDir = projectDir.getParentFile();
+        String targetName = jobName + "_" + version + ".item";
+        Optional<File> jobFileOpt = FileHelper.findFileRecursively(processDir, targetName);
+        File jobFile;
+        if (jobFileOpt.isPresent()) {
+            jobFile = jobFileOpt.get();
+        } else {
+            throw new IOException("Job file not found: " + targetName + " under " + processDir.getAbsolutePath());
         }
 
-        if (projectDir == null) {
-            throw new IOException("Unable to locate Talend project folder from: " + routeItemPath);
-        }
-
-        File jobFile = new File(projectDir, "process/" + jobName + "_" + version + ".item");
         return jobFile.getAbsolutePath();
     }
 
     /**
-     * Ensures that a tPrejob component with a specific unique name exists in the given XML document.
+     * Ensures that a tPrejob component exists in the given Talend job XML document.
+     * <p>
+     * If a tPrejob node is already present, this method returns its {@code UNIQUE_NAME} value.
+     * If not found, it creates a new tPrejob node, appends it to the document,
+     * and returns the {@code UNIQUE_NAME} of the newly created component.
+     * <p>
+     * If the {@code UNIQUE_NAME} parameter is missing in either case, an exception is thrown.
      *
-     * <p>If the component with UNIQUE_NAME = "tPrejob_1" is not found,
-     * this method appends a new tPrejob element to the root of the document.
-     *
-     * @param doc the XML Document representing a Talend job
+     * @param doc the XML {@link Document} representing a Talend job
+     * @return the {@code UNIQUE_NAME} of the existing or newly created tPrejob component
+     * @throws IllegalStateException if the tPrejob component does not contain a {@code UNIQUE_NAME} parameter
      */
 
-    private static void ensurePrejobExists(Document doc) {
-        NodeList nodes = doc.getElementsByTagName("node");
-        boolean hasPrejob = false;
 
+    private static String ensurePrejobExistsAndGetPrejobName(Document doc) {
+        NodeList nodes = doc.getElementsByTagName("node");
+
+        // Search for an existing tPrejob component
         for (int i = 0; i < nodes.getLength(); i++) {
             Element node = (Element) nodes.item(i);
+            if (!"tPrejob".equals(node.getAttribute("componentName"))) {
+                continue;
+            }
+
+            // Extract the name of the component
             NodeList params = node.getElementsByTagName("elementParameter");
             for (int j = 0; j < params.getLength(); j++) {
                 Element param = (Element) params.item(j);
-                if ("UNIQUE_NAME".equals(param.getAttribute("name"))
-                        && "tPrejob_1".equals(param.getAttribute("value"))) {
-                    hasPrejob = true;
-                    break;
+                if ("UNIQUE_NAME".equals(param.getAttribute("name"))) {
+                    return param.getAttribute("value");
                 }
             }
-            if (hasPrejob) break;
         }
 
-        if (!hasPrejob) {
-            Element root = doc.getDocumentElement();
-            root.appendChild(CreateAndGetElements.getNewTPreJobComponent(doc));
+        // If not found - create a new tPrejob
+        Element root = doc.getDocumentElement();
+        Element newPrejob = CreateAndGetElements.getNewTPreJobComponent(doc);
+        root.appendChild(newPrejob);
+
+        // Extract the name of the new component
+        NodeList newParams = newPrejob.getElementsByTagName("elementParameter");
+        for (int j = 0; j < newParams.getLength(); j++) {
+            Element param = (Element) newParams.item(j);
+            if ("UNIQUE_NAME".equals(param.getAttribute("name"))) {
+                return param.getAttribute("value");
+            }
         }
+
+        throw new IllegalStateException("Created tPrejob does not contain a UNIQUE_NAME parameter.");
     }
 
+
     /**
-     * Ensures that a tJava component with UNIQUE_NAME="logconfig" exists in the XML.
+     * Ensures that a tJava with custom code exists in the XML.
      *
      * <p>If it does not exist, creates it with the provided code.
      * If it does exist, replaces its CODE content with the new code.
+     * <p>
+     * Method also returns its {@code UNIQUE_NAME} value.
      *
      * @param doc     the XML Document representing a Talend job
      * @param newCode the Java code to inject into the tJava component
+     * @return the {@code UNIQUE_NAME} of the existing or newly created tJava component
      */
-    private static void ensureTJavaWithCustomCodeExists(Document doc, String newCode) {
+    private static String ensureTJavaWithCustomCodeExistsAndGetComponentName(Document doc, String newCode) {
+        String componentUniqueName = "__logconfig__";
         Element root = doc.getDocumentElement();
         NodeList nodes = doc.getElementsByTagName("node");
-        Element logconfigNode = null;
+        Element tJavaWithCustomCodeNode = null;
 
-        // Searching for a node with UNIQUE_NAME="logconfig"
+        // Searching for a node with UNIQUE_NAME
         for (int i = 0; i < nodes.getLength(); i++) {
             Element node = (Element) nodes.item(i);
+
+            // Skip everything except tJava
+            if (!"tJava".equals(node.getAttribute("componentName"))) {
+                continue;
+            }
+
             NodeList params = node.getElementsByTagName("elementParameter");
             for (int j = 0; j < params.getLength(); j++) {
                 Element param = (Element) params.item(j);
                 if ("UNIQUE_NAME".equals(param.getAttribute("name"))
-                        && "logconfig".equals(param.getAttribute("value"))) {
-                    logconfigNode = node;
+                        && componentUniqueName.equals(param.getAttribute("value"))) {
+                    tJavaWithCustomCodeNode = node;
                     break;
                 }
             }
-            if (logconfigNode != null) break;
+            if (tJavaWithCustomCodeNode != null) break;
         }
 
-        // Creating logconfig if it doesn't exist
-        if (logconfigNode == null) {
-            logconfigNode = CreateAndGetElements.getNewTJavaComponent(doc, "logconfig", newCode);
-            root.appendChild(logconfigNode);
+        // Creating tJava with custom code if it doesn't exist
+        if (tJavaWithCustomCodeNode == null) {
+            tJavaWithCustomCodeNode = CreateAndGetElements.getNewTJavaComponent(doc, componentUniqueName, newCode);
+            root.appendChild(tJavaWithCustomCodeNode);
         } else {
-            // Overwriting code if logconfig already exists
-            NodeList params = logconfigNode.getElementsByTagName("elementParameter");
+            // Overwriting code tJava with custom code already exists
+            NodeList params = tJavaWithCustomCodeNode.getElementsByTagName("elementParameter");
             for (int i = 0; i < params.getLength(); i++) {
                 Element param = (Element) params.item(i);
                 if ("CODE".equals(param.getAttribute("name"))) {
@@ -197,18 +240,19 @@ public class CodeInjector {
                 }
             }
         }
+        return componentUniqueName;
     }
 
     /**
-     * Ensures there is a connection from tPrejob_1 to logconfig (tJava with custom code)
+     * Ensures there is a connection from tPrejob to tJava with custom code
      *
-     * <p>If not reachable, finds the last reachable node in tPrejob_1 chain and
+     * <p>If not reachable, finds the last reachable node in tPrejob chain and
      * adds a new connection (OnComponentOk) with name = OnComponentOkLogger .
      *
      * @param doc the XML Document representing the Talend job
      */
 
-    private static void ensureConnectionFromPrejobToTJavaWithCustomCode(Document doc) {
+    private static void ensureConnectionFromPrejobToTJavaWithCustomCode(Document doc, String prejobName, String tJavaName) {
         NodeList connections = doc.getElementsByTagName("connection");
         Map<String, List<String>> graph = new HashMap<>();
 
@@ -219,12 +263,12 @@ public class CodeInjector {
                     .add(conn.getAttribute("target"));
         }
 
-        // Checking logconfig reachability
-        if (!ChainHelper.isNodeReachable("tPrejob_1", "logconfig", graph)) {
-            String lastNode = ChainHelper.findLastNodeInChain("tPrejob_1", graph);
+        // Checking tJava with custom code reachability
+        if (!ChainHelper.isNodeReachable(prejobName, tJavaName, graph)) {
+            String lastNode = ChainHelper.findLastNodeInChain(prejobName, graph);
 
-           Element connection = CreateAndGetElements.getNewConnectionElement(doc,"OnComponentOkLogger",
-                   lastNode,"logconfig");
+            Element connection = CreateAndGetElements.getNewConnectionElement(doc, "OnComponentOkLogger",
+                    lastNode, tJavaName);
             Element root = doc.getDocumentElement();
             root.appendChild(connection);
         }
@@ -232,7 +276,7 @@ public class CodeInjector {
 
     /**
      * Injects or updates custom Java code into a Talend job .item file.
-     * <p>Ensures the presence of tPrejob, tJava (logconfig), and proper connection between them.
+     * <p>Ensures the presence of tPrejob, tJava with custom code, and proper connection between them.
      *
      * @param jobPath path to the Talend .item file
      * @param newCode Java code to inject into tJava
@@ -240,18 +284,14 @@ public class CodeInjector {
      */
     private static void processJobItemFile(String jobPath, String newCode) throws Exception {
         File xmlFile = new File(jobPath);
-        if (!xmlFile.exists()) {
-            System.err.println("Job file not found: " + jobPath);
-            return;
-        }
 
         DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
         Document doc = dBuilder.parse(xmlFile);
         doc.getDocumentElement().normalize();
 
-        ensureTJavaWithCustomCodeExists(doc, newCode);
-        ensurePrejobExists(doc);
-        ensureConnectionFromPrejobToTJavaWithCustomCode(doc);
+        String tJavaWithCustomCodeName = ensureTJavaWithCustomCodeExistsAndGetComponentName(doc, newCode);
+        String prejobName = ensurePrejobExistsAndGetPrejobName(doc);
+        ensureConnectionFromPrejobToTJavaWithCustomCode(doc, prejobName, tJavaWithCustomCodeName);
 
         Transformer transformer = TransformerFactory.newInstance().newTransformer();
         transformer.setOutputProperty(OutputKeys.INDENT, "yes");
