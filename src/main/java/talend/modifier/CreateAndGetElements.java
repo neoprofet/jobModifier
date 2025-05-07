@@ -9,6 +9,8 @@ import org.w3c.dom.*;
  */
 public class CreateAndGetElements {
 
+    public static final String DEFAULT_PREJOB_UNIQUE_NAME = "tPrejob_1";
+
     /**
      * Creates a new tJava component node with specified name and Java code.
      *
@@ -77,7 +79,7 @@ public class CreateAndGetElements {
         Element uniqueNameParam = doc.createElement("elementParameter");
         uniqueNameParam.setAttribute("field", "TEXT");
         uniqueNameParam.setAttribute("name", "UNIQUE_NAME");
-        uniqueNameParam.setAttribute("value", "tPrejob_1");
+        uniqueNameParam.setAttribute("value", DEFAULT_PREJOB_UNIQUE_NAME);
 
         prejobNode.appendChild(uniqueNameParam);
         return prejobNode;

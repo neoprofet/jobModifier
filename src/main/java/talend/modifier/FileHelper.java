@@ -48,20 +48,15 @@ public class FileHelper {
     public static File resolveSubdirectoryUpwards(File startFile, String targetSubdirectoryName) throws IOException {
         File current = startFile.getCanonicalFile().getParentFile();
 
-        while (current != null && !new File(current, targetSubdirectoryName).exists()) {
+        while (current != null) {
+            File target = new File(current, targetSubdirectoryName);
+            if (target.exists()) {
+                return target;
+            }
             current = current.getParentFile();
         }
 
-        if (current == null) {
-            throw new IOException("Directory '" + targetSubdirectoryName + "' not found upwards from: " + startFile.getAbsolutePath());
-        }
-
-        File result = new File(current, targetSubdirectoryName);
-        if (!result.exists()) {
-            throw new IOException("Resolved directory does not exist: " + result.getAbsolutePath());
-        }
-
-        return result;
+        throw new IOException("Directory '" + targetSubdirectoryName + "' not found upwards from: " + startFile.getAbsolutePath());
     }
 
 }

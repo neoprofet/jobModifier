@@ -12,6 +12,7 @@ import java.util.*;
 
 
 public class CodeInjector {
+    public static final String DEFAULT_TJAVA_UNIQUE_NAME = "__logconfig__";
 
     /**
      * Injects a specified block of code into all job items referenced by a given route.
@@ -173,17 +174,7 @@ public class CodeInjector {
         Element root = doc.getDocumentElement();
         Element newPrejob = CreateAndGetElements.getNewTPreJobComponent(doc);
         root.appendChild(newPrejob);
-
-        // Extract the name of the new component
-        NodeList newParams = newPrejob.getElementsByTagName("elementParameter");
-        for (int j = 0; j < newParams.getLength(); j++) {
-            Element param = (Element) newParams.item(j);
-            if ("UNIQUE_NAME".equals(param.getAttribute("name"))) {
-                return param.getAttribute("value");
-            }
-        }
-
-        throw new IllegalStateException("Created tPrejob does not contain a UNIQUE_NAME parameter.");
+        return CreateAndGetElements.DEFAULT_PREJOB_UNIQUE_NAME;
     }
 
 
@@ -193,14 +184,11 @@ public class CodeInjector {
      * <p>If it does not exist, creates it with the provided code.
      * If it does exist, replaces its CODE content with the new code.
      * <p>
-     * Method also returns its {@code UNIQUE_NAME} value.
      *
      * @param doc     the XML Document representing a Talend job
      * @param newCode the Java code to inject into the tJava component
-     * @return the {@code UNIQUE_NAME} of the existing or newly created tJava component
      */
-    private static String ensureTJavaWithCustomCodeExistsAndGetComponentName(Document doc, String newCode) {
-        String componentUniqueName = "__logconfig__";
+    private static void ensureTJavaWithCustomCodeExists(Document doc, String newCode) {
         Element root = doc.getDocumentElement();
         NodeList nodes = doc.getElementsByTagName("node");
         Element tJavaWithCustomCodeNode = null;
@@ -218,7 +206,7 @@ public class CodeInjector {
             for (int j = 0; j < params.getLength(); j++) {
                 Element param = (Element) params.item(j);
                 if ("UNIQUE_NAME".equals(param.getAttribute("name"))
-                        && componentUniqueName.equals(param.getAttribute("value"))) {
+                        && DEFAULT_TJAVA_UNIQUE_NAME.equals(param.getAttribute("value"))) {
                     tJavaWithCustomCodeNode = node;
                     break;
                 }
@@ -228,7 +216,7 @@ public class CodeInjector {
 
         // Creating tJava with custom code if it doesn't exist
         if (tJavaWithCustomCodeNode == null) {
-            tJavaWithCustomCodeNode = CreateAndGetElements.getNewTJavaComponent(doc, componentUniqueName, newCode);
+            tJavaWithCustomCodeNode = CreateAndGetElements.getNewTJavaComponent(doc, DEFAULT_TJAVA_UNIQUE_NAME, newCode);
             root.appendChild(tJavaWithCustomCodeNode);
         } else {
             // Overwriting code tJava with custom code already exists
@@ -240,7 +228,6 @@ public class CodeInjector {
                 }
             }
         }
-        return componentUniqueName;
     }
 
     /**
@@ -289,9 +276,9 @@ public class CodeInjector {
         Document doc = dBuilder.parse(xmlFile);
         doc.getDocumentElement().normalize();
 
-        String tJavaWithCustomCodeName = ensureTJavaWithCustomCodeExistsAndGetComponentName(doc, newCode);
+        ensureTJavaWithCustomCodeExists(doc, newCode);
         String prejobName = ensurePrejobExistsAndGetPrejobName(doc);
-        ensureConnectionFromPrejobToTJavaWithCustomCode(doc, prejobName, tJavaWithCustomCodeName);
+        ensureConnectionFromPrejobToTJavaWithCustomCode(doc, prejobName, DEFAULT_TJAVA_UNIQUE_NAME);
 
         Transformer transformer = TransformerFactory.newInstance().newTransformer();
         transformer.setOutputProperty(OutputKeys.INDENT, "yes");
