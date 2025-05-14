@@ -254,7 +254,7 @@ public class CodeInjector {
         if (!ChainHelper.isNodeReachable(prejobName, tJavaName, graph)) {
             String lastNode = ChainHelper.findLastNodeInChain(prejobName, graph);
 
-            Element connection = CreateAndGetElements.getNewConnectionElement(doc, "OnComponentOkLogger",
+            Element connection = CreateAndGetElements.getNewOnComponentOkConnectionElement(doc, "OnComponentOkLogger",
                     lastNode, tJavaName);
             Element root = doc.getDocumentElement();
             root.appendChild(connection);
