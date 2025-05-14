@@ -86,8 +86,8 @@ public class LoggerInjector {
 
                 if ("Latest".equalsIgnoreCase(jobVersion)) {
                     Optional<String> latestItem = LatestVersionResolver.findLatestVersion(
-                            FileHelper.resolveSubdirectoryUpwards(new File(routeItemPath).getCanonicalFile(), "process"),
-                            jobName);
+                        FileHelper.resolveSubdirectoryUpwards(new File(routeItemPath).getCanonicalFile(), "process"),
+                        jobName);
                     if (latestItem.isPresent()) {
                         jobVersion = latestItem.get();
                     } else {
@@ -206,7 +206,7 @@ public class LoggerInjector {
             for (int j = 0; j < params.getLength(); j++) {
                 Element param = (Element) params.item(j);
                 if ("UNIQUE_NAME".equals(param.getAttribute("name"))
-                        && DEFAULT_TJAVA_UNIQUE_NAME.equals(param.getAttribute("value"))) {
+                    && DEFAULT_TJAVA_UNIQUE_NAME.equals(param.getAttribute("value"))) {
                     tJavaWithCustomCodeNode = node;
                     break;
                 }
@@ -247,7 +247,7 @@ public class LoggerInjector {
         for (int i = 0; i < connections.getLength(); i++) {
             Element conn = (Element) connections.item(i);
             graph.computeIfAbsent(conn.getAttribute("source"), k -> new ArrayList<>())
-                    .add(conn.getAttribute("target"));
+                .add(conn.getAttribute("target"));
         }
 
         // Checking tJava with custom code reachability
@@ -255,7 +255,7 @@ public class LoggerInjector {
             String lastNode = ChainHelper.findLastNodeInChain(prejobName, graph);
 
             Element connection = CreateAndGetElements.getNewOnComponentOkConnectionElement(doc, "OnComponentOkLogger",
-                    lastNode, tJavaName);
+                lastNode, tJavaName);
             Element root = doc.getDocumentElement();
             root.appendChild(connection);
         }

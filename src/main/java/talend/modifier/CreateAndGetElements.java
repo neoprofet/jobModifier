@@ -160,7 +160,7 @@ public class CreateAndGetElements {
                                                                 String label, String traceColumn) {
         if (isConnectionAlreadyPresent(doc, label)) {
             System.out.println("Connection is already present " +
-                    "between tJavaRow and tRestResponse: " + label);
+                "between tJavaRow and tRestResponse: " + label);
             return;
         }
 
@@ -223,8 +223,8 @@ public class CreateAndGetElements {
             for (int j = 0; j < parameters.getLength(); j++) {
                 Element param = (Element) parameters.item(j);
                 if ("TEXT".equals(param.getAttribute("field")) &&
-                        "UNIQUE_NAME".equals(param.getAttribute("name")) &&
-                        uniqueName.equals(param.getAttribute("value"))) {
+                    "UNIQUE_NAME".equals(param.getAttribute("name")) &&
+                    uniqueName.equals(param.getAttribute("value"))) {
 
                     NodeList metadataList = node.getElementsByTagName("metadata");
                     boolean metadataExists = false;
@@ -233,7 +233,7 @@ public class CreateAndGetElements {
                     for (int k = 0; k < metadataList.getLength(); k++) {
                         Element metadata = (Element) metadataList.item(k);
                         if ("FLOW".equals(metadata.getAttribute("connector")) &&
-                                uniqueName.equals(metadata.getAttribute("name"))) {
+                            uniqueName.equals(metadata.getAttribute("name"))) {
                             metadataExists = true;
 
                             NodeList columns = metadata.getElementsByTagName("column");
@@ -247,7 +247,7 @@ public class CreateAndGetElements {
 
                             if (!columnExists) {
                                 Element column = getElementConnectionMetadataColumn(doc,
-                                        colName, type);
+                                    colName, type);
                                 metadata.appendChild(column);
                             }
                             break;
@@ -422,7 +422,7 @@ public class CreateAndGetElements {
                 for (int j = 0; j < parameters.getLength(); j++) {
                     Element param = (Element) parameters.item(j);
                     if ("TABLE".equals(param.getAttribute("field")) &&
-                            "SCHEMAS".equals(param.getAttribute("name"))) {
+                        "SCHEMAS".equals(param.getAttribute("name"))) {
                         schemasParam = param;
                         break;
                     }
@@ -439,19 +439,19 @@ public class CreateAndGetElements {
                 for (int k = 0; k < elements.getLength(); k++) {
                     Element element = (Element) elements.item(k);
                     if ("SCHEMA".equals(element.getAttribute("elementRef")) &&
-                            outputFlow.equals(element.getAttribute("value"))) {
+                        outputFlow.equals(element.getAttribute("value"))) {
                         System.out.println("Output Flow already exists: " + outputFlow);
                         return;
                     }
                 }
 
                 String[][] schemaElements = {
-                        {"SCHEMA", outputFlow},
-                        {"HTTP_VERB", verb},
-                        {"URI_PATTERN", "\"" + pattern + "\""},
-                        {"CONSUMES", consumes},
-                        {"PRODUCES", produces},
-                        {"STREAMING", "false"}
+                    {"SCHEMA", outputFlow},
+                    {"HTTP_VERB", verb},
+                    {"URI_PATTERN", "\"" + pattern + "\""},
+                    {"CONSUMES", consumes},
+                    {"PRODUCES", produces},
+                    {"STREAMING", "false"}
                 };
 
                 for (String[] schemaElement : schemaElements) {
@@ -494,7 +494,7 @@ public class CreateAndGetElements {
                 for (int j = 0; j < parameters.getLength(); j++) {
                     Element param = (Element) parameters.item(j);
                     if ("TEXT".equals(param.getAttribute("field")) &&
-                            "UNIQUE_NAME".equals(param.getAttribute("name"))) {
+                        "UNIQUE_NAME".equals(param.getAttribute("name"))) {
                         return Optional.of(param.getAttribute("value"));
                     }
                 }

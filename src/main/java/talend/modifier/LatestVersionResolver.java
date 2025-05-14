@@ -38,14 +38,14 @@ public class LatestVersionResolver {
          * */
         try (Stream<Path> allFiles = Files.walk(dir.toPath())) {
             return allFiles
-                    .filter(Files::isRegularFile)
-                    .map(Path::getFileName)
-                    .map(Path::toString)
-                    .filter(name -> name.matches(Pattern.quote(jobName) + "_\\d+\\.\\d+\\.item"))
-                    .map(name -> name.replaceFirst(Pattern.quote(jobName) + "_", "").replace(".item", ""))
-                    .map(LatestVersionResolver::parseVersion)
-                    .max(LatestVersionResolver::compareVersions)
-                    .map(LatestVersionResolver::formatVersion);
+                .filter(Files::isRegularFile)
+                .map(Path::getFileName)
+                .map(Path::toString)
+                .filter(name -> name.matches(Pattern.quote(jobName) + "_\\d+\\.\\d+\\.item"))
+                .map(name -> name.replaceFirst(Pattern.quote(jobName) + "_", "").replace(".item", ""))
+                .map(LatestVersionResolver::parseVersion)
+                .max(LatestVersionResolver::compareVersions)
+                .map(LatestVersionResolver::formatVersion);
         }
     }
 
@@ -58,8 +58,8 @@ public class LatestVersionResolver {
      */
     private static List<Integer> parseVersion(String version) {
         return Arrays.stream(version.split("\\."))
-                .map(Integer::parseInt)
-                .collect(Collectors.toList());
+            .map(Integer::parseInt)
+            .collect(Collectors.toList());
     }
 
     /**
@@ -86,7 +86,7 @@ public class LatestVersionResolver {
      */
     private static String formatVersion(List<Integer> versionParts) {
         return versionParts.stream()
-                .map(String::valueOf)
-                .collect(Collectors.joining("."));
+            .map(String::valueOf)
+            .collect(Collectors.joining("."));
     }
 }

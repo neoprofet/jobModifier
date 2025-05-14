@@ -20,7 +20,7 @@ public class StatusInjector {
     public static final String DEFAULT_T_JAVA_ROW_UNIQUE_NAME = "__tJavaRow_status__";
     public static final String DEFAULT_STATUS_OUTPUT_FLOW_UNIQUE_NAME = "__status__";
 
-    public static void injectStatusToJob(String jobPath) {
+    public static void injectStatusToService(String jobPath) {
         try {
             DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
             Document doc = dBuilder.parse(new File(jobPath));
@@ -31,43 +31,47 @@ public class StatusInjector {
                     System.out.println("Processing file: " + jobPath);
 
                     CreateAndGetElements.createNewTRestResponseComponent(
-                            doc,
-                            DEFAULT_T_REST_RESPONSE_UNIQUE_NAME,
-                            "String",
-                            "OK (200)"
+                        doc,
+                        DEFAULT_T_REST_RESPONSE_UNIQUE_NAME,
+                        "String",
+                        "OK (200)"
                     );
                     System.out.println(DEFAULT_T_REST_RESPONSE_UNIQUE_NAME + " created");
 
                     if (!hasTJavaRowStatusExists(doc)) {
                         CreateAndGetElements.createNewTJavaRowComponent(doc,
-                                DEFAULT_T_JAVA_ROW_UNIQUE_NAME,
-                                ExternalCodeFabric.getNewCodeToInsertToTJavaRowStatus()
+                            DEFAULT_T_JAVA_ROW_UNIQUE_NAME,
+                            ExternalCodeFabric.getNewCodeToInsertToTJavaRowStatus()
                         );
                     }
                     System.out.println(DEFAULT_T_JAVA_ROW_UNIQUE_NAME + " created");
 
                     //Connection between tJavaRow and tRestResponse
-                    CreateAndGetElements.createNewMainConnectionElementWithSchema(doc,
-                            "mainConnection " + DEFAULT_STATUS_OUTPUT_FLOW_UNIQUE_NAME,
-                            DEFAULT_T_JAVA_ROW_UNIQUE_NAME, DEFAULT_T_REST_RESPONSE_UNIQUE_NAME,
-                            "row " + DEFAULT_STATUS_OUTPUT_FLOW_UNIQUE_NAME,
-                            "body"
+                    CreateAndGetElements.createNewMainConnectionElementWithSchema(
+                        doc,
+                        "mainConnection " + DEFAULT_STATUS_OUTPUT_FLOW_UNIQUE_NAME,
+                        DEFAULT_T_JAVA_ROW_UNIQUE_NAME, DEFAULT_T_REST_RESPONSE_UNIQUE_NAME,
+                        "row " + DEFAULT_STATUS_OUTPUT_FLOW_UNIQUE_NAME,
+                        "body"
                     );
 
-                    CreateAndGetElements.addOutputFlowToTRestRequest(doc,
-                            DEFAULT_STATUS_OUTPUT_FLOW_UNIQUE_NAME,
-                            "GET",
-                            "/" + DEFAULT_STATUS_OUTPUT_FLOW_UNIQUE_NAME,
-                            "NONE",
-                            "JSON");
+                    CreateAndGetElements.addOutputFlowToTRestRequest(
+                        doc,
+                        DEFAULT_STATUS_OUTPUT_FLOW_UNIQUE_NAME,
+                        "GET",
+                        "/" + DEFAULT_STATUS_OUTPUT_FLOW_UNIQUE_NAME,
+                        "NONE",
+                        "JSON"
+                    );
 
                     String tRestRequestName = CreateAndGetElements.getUniqueComponentName(doc,
-                            "tRESTRequest").get();
+                        "tRESTRequest").get();
 
-                    CreateAndGetElements.createNewMainConnectionElementWithoutSchema(doc,
-                            DEFAULT_STATUS_OUTPUT_FLOW_UNIQUE_NAME,
-                            tRestRequestName,
-                            DEFAULT_T_JAVA_ROW_UNIQUE_NAME
+                    CreateAndGetElements.createNewMainConnectionElementWithoutSchema(
+                        doc,
+                        DEFAULT_STATUS_OUTPUT_FLOW_UNIQUE_NAME,
+                        tRestRequestName,
+                        DEFAULT_T_JAVA_ROW_UNIQUE_NAME
                     );
                 }
             } else {
@@ -94,10 +98,10 @@ public class StatusInjector {
         if (processDir != null && processDir.isDirectory()) {
             try (Stream<Path> allFiles = Files.walk(processDir.toPath())) {
                 return allFiles
-                        .filter(Files::isRegularFile)
-                        .filter(path -> path.toString().endsWith(".item"))
-                        .map(Path::toString)
-                        .collect(Collectors.toList());
+                    .filter(Files::isRegularFile)
+                    .filter(path -> path.toString().endsWith(".item"))
+                    .map(Path::toString)
+                    .collect(Collectors.toList());
             }
         }
         return Collections.emptyList();

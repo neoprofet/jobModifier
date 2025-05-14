@@ -12,20 +12,20 @@ public class Main {
 
         switch (flag) {
             case "--s":
-                StatusInjector.injectStatusToJob(itemPath);
+                StatusInjector.injectStatusToService(itemPath);
                 break;
             case "--l":
                 LoggerInjector.injectLoggerCodeToAllJobsOfRoute(itemPath,
-                        ExternalCodeFabric.getNewCodeToInsertToLogconfig());
+                    ExternalCodeFabric.getNewCodeToInsertToLogconfig());
                 break;
             default:
-                System.out.println("Invalid arguments");
                 showUsage();
+                System.out.println("Invalid flag. Use --s for status injection or --l for log code injection.");
                 break;
         }
     }
 
     private static void showUsage() {
-        System.out.println("Usage: ... java -jar talendJobModifier.jar --s|--l <jobItemPath>|<routeItemPath>");
+        System.out.println("Usage: --s|--l <jobItemPath>|<routeItemPath>");
     }
 }
