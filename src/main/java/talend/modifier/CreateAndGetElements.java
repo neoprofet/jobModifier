@@ -121,7 +121,8 @@ public class CreateAndGetElements {
         return connection;
     }
 
-    public static void createNewMainConnectionElementWithoutSchema(Document doc, String label, String source, String target) {
+    public static void createNewMainConnectionElementWithoutSchema(Document doc, String label,
+                                                                   String source, String target) {
 
         if (isConnectionAlreadyPresent(doc, label)) {
             System.out.println("Connection is already present between tRestRequest and tJavaRow: " + label);
@@ -158,7 +159,8 @@ public class CreateAndGetElements {
                                                                 String source, String target,
                                                                 String label, String traceColumn) {
         if (isConnectionAlreadyPresent(doc, label)) {
-            System.out.println("Connection is already present between tJavaRow and tRestResponse: " + label);
+            System.out.println("Connection is already present " +
+                    "between tJavaRow and tRestResponse: " + label);
             return;
         }
 
@@ -211,7 +213,8 @@ public class CreateAndGetElements {
         doc.getDocumentElement().appendChild(connection);
     }
 
-    private static void createConnectionMetadataToNode(Document doc, String uniqueName, String type, String colName) {
+    private static void createConnectionMetadataToNode(Document doc, String uniqueName,
+                                                       String type, String colName) {
         NodeList nodes = doc.getElementsByTagName("node");
         for (int i = 0; i < nodes.getLength(); i++) {
             Element node = (Element) nodes.item(i);
@@ -243,7 +246,8 @@ public class CreateAndGetElements {
                             }
 
                             if (!columnExists) {
-                                Element column = getElementConnectionMetadataColumn(doc, colName, type);
+                                Element column = getElementConnectionMetadataColumn(doc,
+                                        colName, type);
                                 metadata.appendChild(column);
                             }
                             break;
@@ -265,7 +269,8 @@ public class CreateAndGetElements {
         }
     }
 
-    private static Element getElementConnectionMetadataColumn(Document doc, String colName, String type) {
+    private static Element getElementConnectionMetadataColumn(Document doc, String colName,
+                                                              String type) {
         Element column = doc.createElement("column");
         column.setAttribute("name", colName);
         column.setAttribute("type", type);
@@ -279,7 +284,8 @@ public class CreateAndGetElements {
         return column;
     }
 
-    public static void createNewTJavaRowComponent(Document doc, String name, String code) {
+    public static void createNewTJavaRowComponent(Document doc, String name,
+                                                  String code) {
         Element tjavaRowNode = doc.createElement("node");
         tjavaRowNode.setAttribute("componentName", "tJavaRow");
         tjavaRowNode.setAttribute("componentVersion", "0.101");
@@ -402,7 +408,9 @@ public class CreateAndGetElements {
         rootElement.appendChild(tRestResponseNode);
     }
 
-    public static void addOutputFlowToTRestRequest(Document doc, String outputFlow, String verb, String pattern, String consumes, String produces) {
+    public static void addOutputFlowToTRestRequest(Document doc, String outputFlow,
+                                                   String verb, String pattern,
+                                                   String consumes, String produces) {
         NodeList nodes = doc.getElementsByTagName("node");
         for (int i = 0; i < nodes.getLength(); i++) {
             Element node = (Element) nodes.item(i);
@@ -413,7 +421,8 @@ public class CreateAndGetElements {
                 NodeList parameters = node.getElementsByTagName("elementParameter");
                 for (int j = 0; j < parameters.getLength(); j++) {
                     Element param = (Element) parameters.item(j);
-                    if ("TABLE".equals(param.getAttribute("field")) && "SCHEMAS".equals(param.getAttribute("name"))) {
+                    if ("TABLE".equals(param.getAttribute("field")) &&
+                            "SCHEMAS".equals(param.getAttribute("name"))) {
                         schemasParam = param;
                         break;
                     }
@@ -429,7 +438,8 @@ public class CreateAndGetElements {
                 NodeList elements = schemasParam.getElementsByTagName("elementValue");
                 for (int k = 0; k < elements.getLength(); k++) {
                     Element element = (Element) elements.item(k);
-                    if ("SCHEMA".equals(element.getAttribute("elementRef")) && outputFlow.equals(element.getAttribute("value"))) {
+                    if ("SCHEMA".equals(element.getAttribute("elementRef")) &&
+                            outputFlow.equals(element.getAttribute("value"))) {
                         System.out.println("Output Flow already exists: " + outputFlow);
                         return;
                     }

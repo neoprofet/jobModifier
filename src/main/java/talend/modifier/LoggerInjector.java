@@ -11,7 +11,7 @@ import java.io.IOException;
 import java.util.*;
 
 
-public class CodeInjector {
+public class LoggerInjector {
     public static final String DEFAULT_TJAVA_UNIQUE_NAME = "__logconfig__";
 
     /**
@@ -23,7 +23,7 @@ public class CodeInjector {
      * @param routeItemPath the file system path to the .item file of the route
      * @param newCode       the code block to inject into each referenced job
      */
-    public static void injectCodeToAllJobsOfRoute(String routeItemPath, String newCode) {
+    public static void injectLoggerCodeToAllJobsOfRoute(String routeItemPath, String newCode) {
         try {
             Map<String, String> jobNamesAndVersions = getJobNamesAndVersionsByRouteItemPath(routeItemPath);
 

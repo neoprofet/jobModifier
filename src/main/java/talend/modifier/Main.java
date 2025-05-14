@@ -3,23 +3,29 @@ package talend.modifier;
 public class Main {
     public static void main(String[] args) {
         if (args.length < 2) {
-            System.out.println("Usage: java MainClass --s|--l <routeItemPath>");
+            showUsage();
             return;
         }
 
         String flag = args[0];
-        String routeItemPath = args[1];
+        String itemPath = args[1];
 
         switch (flag) {
             case "--s":
-                StatusInjector.injectStatusToAllJobs(routeItemPath);
+                StatusInjector.injectStatusToJob(itemPath);
                 break;
             case "--l":
-                CodeInjector.injectCodeToAllJobsOfRoute(routeItemPath, ExternalCodeFabric.getNewCodeToInsertToLogconfig());
+                LoggerInjector.injectLoggerCodeToAllJobsOfRoute(itemPath,
+                        ExternalCodeFabric.getNewCodeToInsertToLogconfig());
                 break;
             default:
-                System.out.println("Invalid flag. Use --s for status injection or --l for log code injection.");
+                System.out.println("Invalid arguments");
+                showUsage();
                 break;
         }
+    }
+
+    private static void showUsage() {
+        System.out.println("Usage: ... java -jar talendJobModifier.jar --s|--l <jobItemPath>|<routeItemPath>");
     }
 }
