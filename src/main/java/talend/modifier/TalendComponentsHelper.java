@@ -1,106 +1,69 @@
 package talend.modifier;
 
 import org.w3c.dom.*;
+import java.util.*;
 
-import java.util.Optional;
-
-/**
- * Utility class for creating Talend job elements in XML format.
- * <p>
- * Provides factory methods to create tJava, tPrejob components and connections between nodes
- * for use in Talend .item files.
- */
-public class CreateAndGetElements {
+public class TalendComponentsHelper {
 
     public static final String DEFAULT_PREJOB_UNIQUE_NAME = "tPrejob_1";
 
-    /**
-     * Creates a new tJava component node with specified name and Java code.
-     *
-     * @param doc  the XML Document to create elements in
-     * @param name the unique name of the tJava component
-     * @param code the Java code to be embedded in the component
-     * @return the constructed XML Element representing the tJava node
-     */
     public static Element getNewTJavaComponent(Document doc, String name, String code) {
-        Element tjavaNode = doc.createElement("node");
-        tjavaNode.setAttribute("componentName", "tJava");
-        tjavaNode.setAttribute("componentVersion", "0.101");
-        tjavaNode.setAttribute("offsetLabelX", "0");
-        tjavaNode.setAttribute("offsetLabelY", "0");
-        tjavaNode.setAttribute("posX", "320");
-        tjavaNode.setAttribute("posY", "64");
-
+        Element component = doc.createElement("node");
+        component.setAttribute("componentName", "tJava");
+        component.setAttribute("componentVersion", "0.101");
+        component.setAttribute("offsetLabelX", "0");
+        component.setAttribute("offsetLabelY", "0");
+        component.setAttribute("posX", "320");
+        component.setAttribute("posY", "64");
         Element uniqueNameParam = doc.createElement("elementParameter");
         uniqueNameParam.setAttribute("field", "TEXT");
         uniqueNameParam.setAttribute("name", "UNIQUE_NAME");
         uniqueNameParam.setAttribute("value", name);
-
         Element codeParam = doc.createElement("elementParameter");
         codeParam.setAttribute("field", "MEMO_JAVA");
         codeParam.setAttribute("name", "CODE");
         codeParam.setAttribute("value", code);
-
         Element importParam = doc.createElement("elementParameter");
         importParam.setAttribute("field", "MEMO_IMPORT");
         importParam.setAttribute("name", "IMPORT");
         importParam.setAttribute("value", "");
-
         Element connectionFormatParam = doc.createElement("elementParameter");
         connectionFormatParam.setAttribute("field", "TEXT");
         connectionFormatParam.setAttribute("name", "CONNECTION_FORMAT");
         connectionFormatParam.setAttribute("value", "row");
-
         Element metadata = doc.createElement("metadata");
         metadata.setAttribute("connector", "FLOW");
         metadata.setAttribute("name", name);
 
-        tjavaNode.appendChild(uniqueNameParam);
-        tjavaNode.appendChild(codeParam);
-        tjavaNode.appendChild(importParam);
-        tjavaNode.appendChild(connectionFormatParam);
-        tjavaNode.appendChild(metadata);
-        return tjavaNode;
+        component.appendChild(uniqueNameParam);
+        component.appendChild(codeParam);
+        component.appendChild(importParam);
+        component.appendChild(connectionFormatParam);
+        component.appendChild(metadata);
+        return component;
     }
 
-    /**
-     * Creates a new tPrejob component node with a fixed name "tPrejob_1".
-     *
-     * @param doc the XML Document to create elements in
-     * @return the constructed XML Element representing the tPrejob node
-     */
     public static Element getNewTPreJobComponent(Document doc) {
 
-        Element prejobNode = doc.createElement("node");
-        prejobNode.setAttribute("componentName", "tPrejob");
-        prejobNode.setAttribute("componentVersion", "0.101");
-        prejobNode.setAttribute("offsetLabelX", "0");
-        prejobNode.setAttribute("offsetLabelY", "0");
-        prejobNode.setAttribute("posX", "0");
-        prejobNode.setAttribute("posY", "0");
+        Element component = doc.createElement("node");
+        component.setAttribute("componentName", "tPrejob");
+        component.setAttribute("componentVersion", "0.101");
+        component.setAttribute("offsetLabelX", "0");
+        component.setAttribute("offsetLabelY", "0");
+        component.setAttribute("posX", "0");
+        component.setAttribute("posY", "0");
 
         Element uniqueNameParam = doc.createElement("elementParameter");
         uniqueNameParam.setAttribute("field", "TEXT");
         uniqueNameParam.setAttribute("name", "UNIQUE_NAME");
         uniqueNameParam.setAttribute("value", DEFAULT_PREJOB_UNIQUE_NAME);
 
-        prejobNode.appendChild(uniqueNameParam);
-        return prejobNode;
+        component.appendChild(uniqueNameParam);
+        return component;
     }
 
-    /**
-     * Creates a new connection element between two Talend components.
-     * <p>
-     * This connection uses the "OnComponentOk" trigger type.
-     *
-     * @param doc    the XML Document to create elements in
-     * @param name   the unique name of the connection
-     * @param source the name of the source component
-     * @param target the name of the target component
-     * @return the constructed XML Element representing the connection
-     */
-    public static Element getNewOnComponentOkConnectionElement(Document doc, String name,
-                                                               String source, String target) {
+    public static Element getNewOnComponentOkConnectionComponent(Document doc, String name,
+                                                                 String source, String target) {
         Element connection = doc.createElement("connection");
         connection.setAttribute("connectorName", "COMPONENT_OK");
         connection.setAttribute("label", "OnComponentOk");
@@ -121,13 +84,10 @@ public class CreateAndGetElements {
         return connection;
     }
 
-    public static void createNewMainConnectionElementWithoutSchema(Document doc, String label,
-                                                                   String source, String target) {
+    public static Element getNewMainConnectionComponentWithoutSchema(Document doc, String source,
+                                                                     String target) {
 
-        if (isConnectionAlreadyPresent(doc, label)) {
-            System.out.println("Connection is already present between tRestRequest and tJavaRow: " + label);
-            return;
-        }
+        String label = source + "_" + target;
 
         Element connection = doc.createElement("connection");
         connection.setAttribute("connectorName", "FLOW");
@@ -138,31 +98,26 @@ public class CreateAndGetElements {
         connection.setAttribute("offsetLabelY", "0");
         connection.setAttribute("source", source);
         connection.setAttribute("target", target);
-
         Element monitorParam = doc.createElement("elementParameter");
         monitorParam.setAttribute("field", "CHECK");
         monitorParam.setAttribute("name", "MONITOR_CONNECTION");
         monitorParam.setAttribute("value", "false");
-        connection.appendChild(monitorParam);
-
         Element uniqueNameParam = doc.createElement("elementParameter");
         uniqueNameParam.setAttribute("field", "TEXT");
         uniqueNameParam.setAttribute("name", "UNIQUE_NAME");
         uniqueNameParam.setAttribute("value", label);
         uniqueNameParam.setAttribute("show", "false");
-        connection.appendChild(uniqueNameParam);
 
-        doc.getDocumentElement().appendChild(connection);
+        connection.appendChild(uniqueNameParam);
+        connection.appendChild(monitorParam);
+
+        return connection;
     }
 
-    public static void createNewMainConnectionElementWithSchema(Document doc, String name,
-                                                                String source, String target,
-                                                                String label, String traceColumn) {
-        if (isConnectionAlreadyPresent(doc, label)) {
-            System.out.println("Connection is already present " +
-                "between tJavaRow and tRestResponse: " + label);
-            return;
-        }
+    public static Element getNewMainConnectionComponentWithSingleSchemaColumn(Document doc,
+                                                                              String source, String target,
+                                                                              String traceColumn) {
+        String label = source + "_" + target;
 
         Element connection = doc.createElement("connection");
         connection.setAttribute("connectorName", "FLOW");
@@ -173,12 +128,10 @@ public class CreateAndGetElements {
         connection.setAttribute("offsetLabelY", "0");
         connection.setAttribute("source", source);
         connection.setAttribute("target", target);
-
         Element param = doc.createElement("elementParameter");
         param.setAttribute("field", "TABLE");
         param.setAttribute("name", "TRACES_CONNECTION_FILTER");
         param.setAttribute("show", "false");
-
         Element traceColumnElement = doc.createElement("elementValue");
         traceColumnElement.setAttribute("elementRef", "TRACE_COLUMN");
         traceColumnElement.setAttribute("value", traceColumn);
@@ -199,18 +152,16 @@ public class CreateAndGetElements {
         monitorParam.setAttribute("name", "MONITOR_CONNECTION");
         monitorParam.setAttribute("value", "false");
         connection.appendChild(monitorParam);
-
         Element uniqueNameParam = doc.createElement("elementParameter");
         uniqueNameParam.setAttribute("field", "TEXT");
         uniqueNameParam.setAttribute("name", "UNIQUE_NAME");
-        uniqueNameParam.setAttribute("value", name);
+        uniqueNameParam.setAttribute("value", label);
         uniqueNameParam.setAttribute("show", "false");
         connection.appendChild(uniqueNameParam);
 
         createConnectionMetadataToNode(doc, source, "id_String", traceColumn);
         createConnectionMetadataToNode(doc, target, "id_String", traceColumn);
-
-        doc.getDocumentElement().appendChild(connection);
+        return connection;
     }
 
     private static void createConnectionMetadataToNode(Document doc, String uniqueName,
@@ -284,16 +235,16 @@ public class CreateAndGetElements {
         return column;
     }
 
-    public static void createNewTJavaRowComponent(Document doc, String name,
+    public static Element getNewTJavaRowComponent(Document doc, String name,
                                                   String code) {
-        Element tjavaRowNode = doc.createElement("node");
-        tjavaRowNode.setAttribute("componentName", "tJavaRow");
-        tjavaRowNode.setAttribute("componentVersion", "0.101");
-        tjavaRowNode.setAttribute("offsetLabelX", "0");
-        tjavaRowNode.setAttribute("offsetLabelY", "0");
-        tjavaRowNode.setAttribute("posX", "320");
-        tjavaRowNode.setAttribute("posY", "64");
 
+        Element component = doc.createElement("node");
+        component.setAttribute("componentName", "tJavaRow");
+        component.setAttribute("componentVersion", "0.101");
+        component.setAttribute("offsetLabelX", "0");
+        component.setAttribute("offsetLabelY", "0");
+        component.setAttribute("posX", "320");
+        component.setAttribute("posY", "64");
         Element uniqueNameParam = doc.createElement("elementParameter");
         uniqueNameParam.setAttribute("field", "TEXT");
         uniqueNameParam.setAttribute("name", "UNIQUE_NAME");
@@ -306,81 +257,69 @@ public class CreateAndGetElements {
         importParam.setAttribute("field", "MEMO_IMPORT");
         importParam.setAttribute("name", "IMPORT");
         importParam.setAttribute("value", "");
-
         Element connectionFormatParam = doc.createElement("elementParameter");
         connectionFormatParam.setAttribute("field", "TEXT");
         connectionFormatParam.setAttribute("name", "CONNECTION_FORMAT");
         connectionFormatParam.setAttribute("value", "row");
-
         Element metadata = doc.createElement("metadata");
         metadata.setAttribute("connector", "FLOW");
         metadata.setAttribute("name", name);
 
-        tjavaRowNode.appendChild(uniqueNameParam);
-        tjavaRowNode.appendChild(codeParam);
-        tjavaRowNode.appendChild(importParam);
-        tjavaRowNode.appendChild(connectionFormatParam);
-        tjavaRowNode.appendChild(metadata);
+        component.appendChild(uniqueNameParam);
+        component.appendChild(codeParam);
+        component.appendChild(importParam);
+        component.appendChild(connectionFormatParam);
+        component.appendChild(metadata);
 
-        Element rootElement = doc.getDocumentElement();
-        rootElement.appendChild(tjavaRowNode);
+        return component;
     }
 
-    public static void createNewTRestResponseComponent(Document doc, String name,
+    public static Element getNewTRestResponseComponent(Document doc, String name,
                                                        String returnBodyType, String returnStatusCode) {
 
-        Element tRestResponseNode = doc.createElement("node");
-        tRestResponseNode.setAttribute("componentName", "tRESTResponse");
-        tRestResponseNode.setAttribute("componentVersion", "0.101");
-        tRestResponseNode.setAttribute("offsetLabelX", "0");
-        tRestResponseNode.setAttribute("offsetLabelY", "0");
-        tRestResponseNode.setAttribute("posX", "640");
-        tRestResponseNode.setAttribute("posY", "64");
+        Element component = doc.createElement("node");
+        component.setAttribute("componentName", "tRESTResponse");
+        component.setAttribute("componentVersion", "0.101");
+        component.setAttribute("offsetLabelX", "0");
+        component.setAttribute("offsetLabelY", "0");
+        component.setAttribute("posX", "640");
+        component.setAttribute("posY", "64");
         Element uniqueNameParam = doc.createElement("elementParameter");
         uniqueNameParam.setAttribute("field", "TEXT");
         uniqueNameParam.setAttribute("name", "UNIQUE_NAME");
         uniqueNameParam.setAttribute("value", name);
         uniqueNameParam.setAttribute("show", "false");
-
         Element responseTypeParam = doc.createElement("elementParameter");
         responseTypeParam.setAttribute("field", "REST_RESPONSE_SCHEMA_TYPE");
         responseTypeParam.setAttribute("name", "RESPONSE_TYPE");
         responseTypeParam.setAttribute("value", "id_" + returnBodyType);
-
         Element statusCodeParam = doc.createElement("elementParameter");
         statusCodeParam.setAttribute("field", "CLOSED_LIST");
         statusCodeParam.setAttribute("name", "STATUS_CODE");
         statusCodeParam.setAttribute("value", returnStatusCode);
-
         Element customStatusCodeParam = doc.createElement("elementParameter");
         customStatusCodeParam.setAttribute("field", "TEXT");
         customStatusCodeParam.setAttribute("name", "CUSTOM_STATUS_CODE");
         customStatusCodeParam.setAttribute("value", returnStatusCode);
         customStatusCodeParam.setAttribute("show", "false");
-
         Element unwrapJsonResponseParam = doc.createElement("elementParameter");
         unwrapJsonResponseParam.setAttribute("field", "CHECK");
         unwrapJsonResponseParam.setAttribute("name", "UNWRAP_JSON_RESPONSE");
         unwrapJsonResponseParam.setAttribute("value", "false");
-
         Element jsonArrayKeysParam = doc.createElement("elementParameter");
         jsonArrayKeysParam.setAttribute("field", "TEXT");
         jsonArrayKeysParam.setAttribute("name", "JSON_ARRAY_KEYS");
         jsonArrayKeysParam.setAttribute("value", "");
-
         Element connectionFormatParam = doc.createElement("elementParameter");
         connectionFormatParam.setAttribute("field", "TEXT");
         connectionFormatParam.setAttribute("name", "CONNECTION_FORMAT");
         connectionFormatParam.setAttribute("value", "row");
-
         Element responseHeadersParam = doc.createElement("elementParameter");
         responseHeadersParam.setAttribute("field", "TABLE");
         responseHeadersParam.setAttribute("name", "RESPONSE_HEADERS");
-
         Element metadata = doc.createElement("metadata");
         metadata.setAttribute("connector", "FLOW");
         metadata.setAttribute("name", name);
-
         Element column = doc.createElement("column");
         column.setAttribute("defaultValue", "");
         column.setAttribute("key", "false");
@@ -394,28 +333,26 @@ public class CreateAndGetElements {
         column.setAttribute("usefulColumn", "true");
         metadata.appendChild(column);
 
-        tRestResponseNode.appendChild(uniqueNameParam);
-        tRestResponseNode.appendChild(responseTypeParam);
-        tRestResponseNode.appendChild(statusCodeParam);
-        tRestResponseNode.appendChild(customStatusCodeParam);
-        tRestResponseNode.appendChild(responseHeadersParam);
-        tRestResponseNode.appendChild(unwrapJsonResponseParam);
-        tRestResponseNode.appendChild(jsonArrayKeysParam);
-        tRestResponseNode.appendChild(connectionFormatParam);
-        tRestResponseNode.appendChild(metadata);
+        component.appendChild(uniqueNameParam);
+        component.appendChild(responseTypeParam);
+        component.appendChild(statusCodeParam);
+        component.appendChild(customStatusCodeParam);
+        component.appendChild(responseHeadersParam);
+        component.appendChild(unwrapJsonResponseParam);
+        component.appendChild(jsonArrayKeysParam);
+        component.appendChild(connectionFormatParam);
+        component.appendChild(metadata);
 
-        Element rootElement = doc.getDocumentElement();
-        rootElement.appendChild(tRestResponseNode);
+        return component;
     }
 
-    public static void addOutputFlowToTRestRequest(Document doc, String outputFlow,
-                                                   String verb, String pattern,
-                                                   String consumes, String produces) {
+    public static void addOutputFlowToTRestRequestIfItsNotExisted(Document doc, String outputFlow,
+                                                                  String verb, String pattern,
+                                                                  String consumes, String produces) {
         NodeList nodes = doc.getElementsByTagName("node");
         for (int i = 0; i < nodes.getLength(); i++) {
             Element node = (Element) nodes.item(i);
             if ("tRESTRequest".equals(node.getAttribute("componentName"))) {
-                System.out.println("tRESTRequest found");
 
                 Element schemasParam = null;
                 NodeList parameters = node.getElementsByTagName("elementParameter");
@@ -440,7 +377,7 @@ public class CreateAndGetElements {
                     Element element = (Element) elements.item(k);
                     if ("SCHEMA".equals(element.getAttribute("elementRef")) &&
                         outputFlow.equals(element.getAttribute("value"))) {
-                        System.out.println("Output Flow already exists: " + outputFlow);
+                        System.out.println("output flow: " + outputFlow + " existed");
                         return;
                     }
                 }
@@ -467,14 +404,13 @@ public class CreateAndGetElements {
                 metadata.setAttribute("name", outputFlow);
                 node.appendChild(metadata);
 
-                System.out.println("Output Flow added: " + outputFlow);
+                System.out.println("output flow: " + outputFlow + " created");
                 return;
             }
         }
-        System.out.println("Component tRESTRequest not found");
     }
 
-    private static boolean isConnectionAlreadyPresent(Document doc, String label) {
+    public static boolean isConnectionAlreadyPresent(Document doc, String label) {
         NodeList connections = doc.getElementsByTagName("connection");
         for (int i = 0; i < connections.getLength(); i++) {
             Element connection = (Element) connections.item(i);
@@ -503,4 +439,84 @@ public class CreateAndGetElements {
         return Optional.empty();
     }
 
+    public static boolean hasComponentExists(Document doc, String name, String filterBy) {
+        NodeList nodes = doc.getElementsByTagName("node");
+        for (int i = 0; i < nodes.getLength(); i++) {
+            Element node = (Element) nodes.item(i);
+
+            if ("UNIQUE_NAME".equals(filterBy)) {
+                NodeList params = node.getElementsByTagName("elementParameter");
+                for (int j = 0; j < params.getLength(); j++) {
+                    Element param = (Element) params.item(j);
+                    if ("UNIQUE_NAME".equals(param.getAttribute("name")) &&
+                        name.equals(param.getAttribute("value"))) {
+                        return true;
+                    }
+                }
+            } else if (name.equals(node.getAttribute(filterBy))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static void connectOneComponentToTheOther(Document doc, String componentA, String componentB) {
+        NodeList connections = doc.getElementsByTagName("connection");
+        Map<String, List<String>> graph = new HashMap<>();
+
+        // Building the dependency graph
+        for (int i = 0; i < connections.getLength(); i++) {
+            Element conn = (Element) connections.item(i);
+            graph.computeIfAbsent(conn.getAttribute("source"), k -> new ArrayList<>())
+                .add(conn.getAttribute("target"));
+        }
+
+        // Checking tJava with custom code reachability
+        if (!ChainHelper.isNodeReachable(componentA, componentB, graph)) {
+            String lastNode = ChainHelper.findLastNodeInChain(componentA, graph);
+
+            Element connection = getNewOnComponentOkConnectionComponent(doc, "OnComponentOkLogger",
+                lastNode, componentB);
+            Element root = doc.getDocumentElement();
+            root.appendChild(connection);
+        }
+    }
+
+    public static String getParameterValue(Element node, String paramName) {
+        NodeList params = node.getElementsByTagName("elementParameter");
+        for (int j = 0; j < params.getLength(); j++) {
+            Element param = (Element) params.item(j);
+            if (paramName.equals(param.getAttribute("name"))) {
+                return param.getAttribute("value");
+            }
+        }
+        return "";
+    }
+
+    public static void updateParameterValue(Document doc,
+                                            String componentType, String uniqueName,
+                                            String paramName, String newValue) {
+        NodeList nodes = doc.getElementsByTagName("node");
+
+        for (int i = 0; i < nodes.getLength(); i++) {
+            Element node = (Element) nodes.item(i);
+            if (componentType.equals(node.getAttribute("componentName"))) {
+                NodeList params = node.getElementsByTagName("elementParameter");
+                for (int j = 0; j < params.getLength(); j++) {
+                    Element param = (Element) params.item(j);
+                    if ("UNIQUE_NAME".equals(param.getAttribute("name"))
+                        && uniqueName.equals(param.getAttribute("value"))) {
+                        for (int k = 0; k < params.getLength(); k++) {
+                            Element codeParam = (Element) params.item(k);
+                            if (paramName.equals(codeParam.getAttribute("name"))) {
+                                codeParam.setAttribute("value", newValue);
+                                //System.out.println("Value updated " + paramName);
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

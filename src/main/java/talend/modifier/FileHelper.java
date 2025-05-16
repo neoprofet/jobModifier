@@ -1,34 +1,34 @@
 package talend.modifier;
 
+import org.w3c.dom.Document;
+
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 import java.io.File;
-import java.io.IOException;
 import java.util.Optional;
 
-/**
- * Utility class for performing file-related operations such as recursive file search
- * and upward directory resolution.
- */
 public class FileHelper {
 
-    /**
-     * Recursively searches for a file with the specified name starting from the given directory.
-     *
-     * <p>The method traverses all subdirectories of the specified root directory to find the first occurrence
-     * of a file matching the target name. If no such file is found, {@link Optional#empty()} is returned.
-     *
-     * @param dir        the root directory from which to begin the search
-     * @param targetName the name of the file to search for
-     * @return an {@link Optional} containing the matching {@link File}, or {@link Optional#empty()} if not found
-     */
+    public static Optional<File> findFileInDirectory(File dir, String targetName) {
+        if (dir == null || !dir.exists()) {
+            return Optional.empty();
+        }
 
-    public static Optional<File> findFileRecursively(File dir, String targetName) {
         File[] files = dir.listFiles();
-        if (files == null) return Optional.empty();
+        if (files == null) {
+            return Optional.empty();
+        }
 
         for (File file : files) {
             if (file.isDirectory()) {
-                Optional<File> result = findFileRecursively(file, targetName);
-                if (result.isPresent()) return result;
+                Optional<File> result = findFileInDirectory(file, targetName);
+                if (result.isPresent()) {
+                    return result;
+                }
             } else if (file.getName().equals(targetName)) {
                 return Optional.of(file);
             }
@@ -36,27 +36,36 @@ public class FileHelper {
         return Optional.empty();
     }
 
-    /**
-     * Resolves a subdirectory by moving upwards from the given start file until
-     * the target subdirectory is found.
-     *
-     * @param startFile              the file or directory to start searching from
-     * @param targetSubdirectoryName the name of the subdirectory to search for
-     * @return the resolved subdirectory as a File object
-     * @throws IOException if the subdirectory cannot be found or the resolved directory does not exist
-     */
-    public static File resolveSubdirectoryUpwards(File startFile, String targetSubdirectoryName) throws IOException {
-        File current = startFile.getCanonicalFile().getParentFile();
+    public static Optional<File> resolveSubdirectoryUpwards(File startFile, String targetSubdirectoryName) {
+        if (startFile == null || !startFile.exists()) {
+            return Optional.empty();
+        }
 
+        File current = startFile;
         while (current != null) {
-            File target = new File(current, targetSubdirectoryName);
-            if (target.exists()) {
-                return target;
+            File[] files = current.listFiles();
+            if (files != null) {
+                for (File file : files) {
+                    if (file.isDirectory() && file.getName().equals(targetSubdirectoryName)) {
+                        return Optional.of(file);
+                    }
+                }
             }
             current = current.getParentFile();
         }
+        return Optional.empty();
+    }
 
-        throw new IOException("Directory '" + targetSubdirectoryName + "' not found upwards from: " + startFile.getAbsolutePath());
+    public static void saveDocument(Document doc, String filePath) throws Exception {
+        Transformer transformer = TransformerFactory.newInstance().newTransformer();
+        transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+        DOMSource source = new DOMSource(doc);
+        StreamResult result = new StreamResult(new File(filePath));
+        transformer.transform(source, result);
+    }
+
+    public static Document loadDocument(String jobPath) throws Exception {
+        return DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(new File(jobPath));
     }
 
 }

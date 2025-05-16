@@ -2,17 +2,7 @@ package talend.modifier;
 
 import org.w3c.dom.*;
 
-import javax.xml.parsers.*;
-import javax.xml.transform.*;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.function.Predicate;
 
 public class StatusInjector {
 
@@ -20,42 +10,86 @@ public class StatusInjector {
     public static final String DEFAULT_T_JAVA_ROW_UNIQUE_NAME = "__tJavaRow_status__";
     public static final String DEFAULT_STATUS_OUTPUT_FLOW_UNIQUE_NAME = "__status__";
 
-    public static void injectStatusToService(String jobPath) {
+    public static final Predicate<Document> IS_T_REST_RESPONSE_MISSING =
+        doc -> !TalendComponentsHelper.hasComponentExists(
+            doc,
+            StatusInjector.DEFAULT_T_REST_RESPONSE_UNIQUE_NAME,
+            "UNIQUE_NAME"
+        );
+
+    public static final Predicate<Document> IS_T_JAVA_ROW_MISSING =
+        doc -> !TalendComponentsHelper.hasComponentExists(
+            doc,
+            StatusInjector.DEFAULT_T_JAVA_ROW_UNIQUE_NAME,
+            "UNIQUE_NAME"
+        );
+
+    public static final Predicate<Document> IS_T_REST_REQUEST_PRESENT =
+        doc -> TalendComponentsHelper.hasComponentExists(
+            doc,
+            "tRESTRequest",
+            "componentName"
+        );
+
+    public static final Predicate<Document> IS_CONNECTION_BETWEEN_T_JAVA_ROW_AND_T_REST_RESPONSE_MISSING =
+        doc -> !TalendComponentsHelper.isConnectionAlreadyPresent(
+            doc,
+            "row " + DEFAULT_STATUS_OUTPUT_FLOW_UNIQUE_NAME
+        );
+
+    public static final Predicate<Document> IS_CONNECTION_BETWEEN_T_REST_REQUEST_AND_T_JAVA_ROW_MISSING =
+        doc -> !TalendComponentsHelper.isConnectionAlreadyPresent(
+            doc,
+            DEFAULT_STATUS_OUTPUT_FLOW_UNIQUE_NAME
+        );
+
+    public static final Predicate<Document> ARE_T_JAVA_ROW_AND_T_REST_RESPONSE_MISSING =
+        IS_T_REST_RESPONSE_MISSING.or(IS_T_JAVA_ROW_MISSING);
+
+    public static void injectStatusToService(String servicePath) {
         try {
-            DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-            Document doc = dBuilder.parse(new File(jobPath));
+            Document doc = FileHelper.loadDocument(servicePath);
             doc.getDocumentElement().normalize();
 
-            if (hasTRestRequestExists(doc)) {
-                if (!hasTRestResponseStatusExists(doc)) {
-                    System.out.println("Processing file: " + jobPath);
+            if (IS_T_REST_REQUEST_PRESENT.test(doc)) {
 
-                    CreateAndGetElements.createNewTRestResponseComponent(
-                        doc,
-                        DEFAULT_T_REST_RESPONSE_UNIQUE_NAME,
-                        "String",
-                        "OK (200)"
-                    );
-                    System.out.println(DEFAULT_T_REST_RESPONSE_UNIQUE_NAME + " created");
+                if (ARE_T_JAVA_ROW_AND_T_REST_RESPONSE_MISSING.test(doc)) {
+                    System.out.println("Processing file: " + servicePath);
 
-                    if (!hasTJavaRowStatusExists(doc)) {
-                        CreateAndGetElements.createNewTJavaRowComponent(doc,
-                            DEFAULT_T_JAVA_ROW_UNIQUE_NAME,
-                            ExternalCodeFabric.getNewCodeToInsertToTJavaRowStatus()
+                    if (IS_T_REST_RESPONSE_MISSING.test(doc)) {
+                        Element tRestResponse = TalendComponentsHelper.getNewTRestResponseComponent(
+                            doc,
+                            DEFAULT_T_REST_RESPONSE_UNIQUE_NAME,
+                            "String",
+                            "OK (200)"
                         );
-                    }
-                    System.out.println(DEFAULT_T_JAVA_ROW_UNIQUE_NAME + " created");
+                        doc.getDocumentElement().appendChild(tRestResponse);
+                        System.out.println("component: " + DEFAULT_T_REST_RESPONSE_UNIQUE_NAME + " created");
+                    } else System.out.println("component: " + DEFAULT_T_REST_RESPONSE_UNIQUE_NAME + " existed");
 
-                    //Connection between tJavaRow and tRestResponse
-                    CreateAndGetElements.createNewMainConnectionElementWithSchema(
-                        doc,
-                        "mainConnection " + DEFAULT_STATUS_OUTPUT_FLOW_UNIQUE_NAME,
-                        DEFAULT_T_JAVA_ROW_UNIQUE_NAME, DEFAULT_T_REST_RESPONSE_UNIQUE_NAME,
-                        "row " + DEFAULT_STATUS_OUTPUT_FLOW_UNIQUE_NAME,
-                        "body"
-                    );
+                    if (IS_T_JAVA_ROW_MISSING.test(doc)) {
+                        Element tJavaRow = TalendComponentsHelper.getNewTJavaRowComponent(doc,
+                            DEFAULT_T_JAVA_ROW_UNIQUE_NAME,
+                            ExternalCode.T_JAVA_ROW_STATUS_CODE
+                        );
+                        doc.getDocumentElement().appendChild(tJavaRow);
+                        System.out.println("component: " + DEFAULT_T_JAVA_ROW_UNIQUE_NAME + " created");
+                    } else System.out.println("component: " + DEFAULT_T_JAVA_ROW_UNIQUE_NAME + " existed");
 
-                    CreateAndGetElements.addOutputFlowToTRestRequest(
+                    if (IS_CONNECTION_BETWEEN_T_JAVA_ROW_AND_T_REST_RESPONSE_MISSING.test(doc)) {
+                        Element connection = TalendComponentsHelper.getNewMainConnectionComponentWithSingleSchemaColumn(
+                            doc,
+                            DEFAULT_T_JAVA_ROW_UNIQUE_NAME,
+                            DEFAULT_T_REST_RESPONSE_UNIQUE_NAME,
+                            "body"
+                        );
+                        doc.getDocumentElement().appendChild(connection);
+                        System.out.println("connection: " + DEFAULT_T_JAVA_ROW_UNIQUE_NAME +
+                            "_" + DEFAULT_T_REST_RESPONSE_UNIQUE_NAME + " created");
+                    } else System.out.println("connection: " + DEFAULT_T_JAVA_ROW_UNIQUE_NAME +
+                        "_" + DEFAULT_T_REST_RESPONSE_UNIQUE_NAME + " existed");
+
+                    TalendComponentsHelper.addOutputFlowToTRestRequestIfItsNotExisted(
                         doc,
                         DEFAULT_STATUS_OUTPUT_FLOW_UNIQUE_NAME,
                         "GET",
@@ -64,79 +98,29 @@ public class StatusInjector {
                         "JSON"
                     );
 
-                    String tRestRequestName = CreateAndGetElements.getUniqueComponentName(doc,
+                    String tRestRequestName = TalendComponentsHelper.getUniqueComponentName(doc,
                         "tRESTRequest").get();
 
-                    CreateAndGetElements.createNewMainConnectionElementWithoutSchema(
-                        doc,
-                        DEFAULT_STATUS_OUTPUT_FLOW_UNIQUE_NAME,
-                        tRestRequestName,
-                        DEFAULT_T_JAVA_ROW_UNIQUE_NAME
-                    );
-                }
-            } else {
-                System.out.println("tRestRequest component not found");
-            }
-            saveDocument(doc, jobPath);
+                    if (IS_CONNECTION_BETWEEN_T_REST_REQUEST_AND_T_JAVA_ROW_MISSING.test(doc)) {
+                        Element connection = TalendComponentsHelper.getNewMainConnectionComponentWithoutSchema(
+                            doc,
+                            tRestRequestName,
+                            DEFAULT_T_JAVA_ROW_UNIQUE_NAME
+                        );
+                        doc.getDocumentElement().appendChild(connection);
+                        System.out.println("connection: " + tRestRequestName +
+                            "_" + DEFAULT_T_JAVA_ROW_UNIQUE_NAME + " created");
+                    } else System.out.println("connection: " + tRestRequestName +
+                        "_" + DEFAULT_T_JAVA_ROW_UNIQUE_NAME + " existed");
+
+                    FileHelper.saveDocument(doc, servicePath);
+
+                } else System.out.println("tRestResponse and tJavaRow components already exist. No action required.");
+
+            } else System.out.println("tRestRequest component not found");
+
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    private static void saveDocument(Document doc, String filePath) throws Exception {
-        Transformer transformer = TransformerFactory.newInstance().newTransformer();
-        transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-        DOMSource source = new DOMSource(doc);
-        StreamResult result = new StreamResult(new File(filePath));
-        transformer.transform(source, result);
-    }
-
-    private static List<String> getAllJobItemFilePathsByRouteItemPath(String routeItemPath) throws IOException {
-        File routeFile = new File(routeItemPath).getCanonicalFile();
-        File processDir = FileHelper.resolveSubdirectoryUpwards(routeFile, "process");
-
-        if (processDir != null && processDir.isDirectory()) {
-            try (Stream<Path> allFiles = Files.walk(processDir.toPath())) {
-                return allFiles
-                    .filter(Files::isRegularFile)
-                    .filter(path -> path.toString().endsWith(".item"))
-                    .map(Path::toString)
-                    .collect(Collectors.toList());
-            }
-        }
-        return Collections.emptyList();
-    }
-
-    private static boolean hasTRestRequestExists(Document doc) {
-        NodeList nodes = doc.getElementsByTagName("node");
-        for (int i = 0; i < nodes.getLength(); i++) {
-            Element node = (Element) nodes.item(i);
-            if ("tRESTRequest".equals(node.getAttribute("componentName"))) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static boolean hasTRestResponseStatusExists(Document doc) {
-        NodeList nodes = doc.getElementsByTagName("node");
-        for (int i = 0; i < nodes.getLength(); i++) {
-            Element node = (Element) nodes.item(i);
-            if (DEFAULT_T_REST_RESPONSE_UNIQUE_NAME.equals(node.getAttribute("UNIQUE_NAME"))) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static boolean hasTJavaRowStatusExists(Document doc) {
-        NodeList nodes = doc.getElementsByTagName("node");
-        for (int i = 0; i < nodes.getLength(); i++) {
-            Element node = (Element) nodes.item(i);
-            if (DEFAULT_T_JAVA_ROW_UNIQUE_NAME.equals(node.getAttribute("UNIQUE_NAME"))) {
-                return true;
-            }
-        }
-        return false;
     }
 }

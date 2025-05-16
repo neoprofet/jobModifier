@@ -1,9 +1,11 @@
 package talend.modifier;
 
 public class Main {
+
     public static void main(String[] args) {
+
         if (args.length < 2) {
-            showUsage();
+            showUsage("The number of arguments is less than necessary; exactly two are needed.");
             return;
         }
 
@@ -16,16 +18,20 @@ public class Main {
                 break;
             case "--l":
                 LoggerInjector.injectLoggerCodeToAllJobsOfRoute(itemPath,
-                    ExternalCodeFabric.getNewCodeToInsertToLogconfig());
+                    ExternalCode.T_JAVA_LOGCONFIG_CODE);
                 break;
             default:
-                showUsage();
-                System.out.println("Invalid flag. Use --s for status injection or --l for log code injection.");
+                showUsage("Invalid flag: " + flag);
                 break;
         }
     }
 
-    private static void showUsage() {
-        System.out.println("Usage: --s|--l <jobItemPath>|<routeItemPath>");
+    private static void showUsage(String error) {
+        if (error != null) {
+            System.out.println(error + "\n");
+        }
+        System.out.println("Usage: --s|--l <serviceItemPath>|<routeItemPath>");
+        System.out.println("--s for status injection");
+        System.out.println("--l for log code injection");
     }
 }
