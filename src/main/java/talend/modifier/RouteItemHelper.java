@@ -19,10 +19,11 @@ public class RouteItemHelper {
             Element node = (Element) nodes.item(i);
             if ("cTalendJob".equals(node.getAttribute("componentName"))) {
 
-                String jobName = TalendComponentsHelper.getParameterValue(node,
-                    "SELECTED_JOB_NAME");
+                String jobName = TalendComponentsHelper.getParameterValue(node, "SELECTED_JOB_NAME")
+                    .orElseThrow(() -> new IllegalStateException("Job name not found"));
                 String jobVersion = TalendComponentsHelper.getParameterValue(node,
-                    "SELECTED_JOB_NAME:PROCESS_TYPE_VERSION");
+                    "SELECTED_JOB_NAME:PROCESS_TYPE_VERSION")
+                    .orElseThrow(() -> new IllegalStateException("Job version not found"));
 
                 if ("Latest".equalsIgnoreCase(jobVersion)) {
                     File routeFile = new File(routeItemPath).getCanonicalFile();
@@ -59,5 +60,6 @@ public class RouteItemHelper {
             );
 
         return jobFile.getAbsolutePath();
+
     }
 }

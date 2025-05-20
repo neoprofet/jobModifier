@@ -482,16 +482,17 @@ public class TalendComponentsHelper {
         }
     }
 
-    public static String getParameterValue(Element node, String paramName) {
+    public static Optional<String> getParameterValue(Element node, String paramName) {
         NodeList params = node.getElementsByTagName("elementParameter");
         for (int j = 0; j < params.getLength(); j++) {
             Element param = (Element) params.item(j);
             if (paramName.equals(param.getAttribute("name"))) {
-                return param.getAttribute("value");
+                return Optional.of(param.getAttribute("value"));
             }
         }
-        return "";
+        return Optional.empty();
     }
+
 
     public static void updateParameterValue(Document doc,
                                             String componentType, String uniqueName,
@@ -510,13 +511,22 @@ public class TalendComponentsHelper {
                             Element codeParam = (Element) params.item(k);
                             if (paramName.equals(codeParam.getAttribute("name"))) {
                                 codeParam.setAttribute("value", newValue);
-                                //System.out.println("Value updated " + paramName);
+                             /*   System.out.println("Updated parameter '" + paramName +
+                                    "' in component '" + uniqueName +
+                                    "' to value: " + newValue); */
                                 return;
                             }
                         }
+                        System.out.println("Parameter '" + paramName +
+                            "' not found in component '" + uniqueName +
+                            "'. No update performed.");
+                        return;
                     }
                 }
             }
         }
+        System.out.println("Component '" + uniqueName
+            + "' of type '" + componentType +
+            "' not found. No update performed.");
     }
 }

@@ -41,18 +41,16 @@ public class FileHelper {
             return Optional.empty();
         }
 
-        File current = startFile;
+        File current = startFile.isDirectory() ? startFile : startFile.getParentFile();
+
         while (current != null) {
-            File[] files = current.listFiles();
-            if (files != null) {
-                for (File file : files) {
-                    if (file.isDirectory() && file.getName().equals(targetSubdirectoryName)) {
-                        return Optional.of(file);
-                    }
-                }
+            File candidate = new File(current, targetSubdirectoryName);
+            if (candidate.isDirectory()) {
+                return Optional.of(candidate);
             }
             current = current.getParentFile();
         }
+
         return Optional.empty();
     }
 
