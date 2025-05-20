@@ -1,6 +1,7 @@
 package talend.modifier;
 
 import org.w3c.dom.*;
+
 import java.util.*;
 
 public class TalendComponentsHelper {
@@ -85,9 +86,7 @@ public class TalendComponentsHelper {
     }
 
     public static Element getNewMainConnectionComponentWithoutSchema(Document doc, String source,
-                                                                     String target) {
-
-        String label = source + "_" + target;
+                                                                     String target, String label) {
 
         Element connection = doc.createElement("connection");
         connection.setAttribute("connectorName", "FLOW");

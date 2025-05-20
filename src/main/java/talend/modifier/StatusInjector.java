@@ -105,7 +105,8 @@ public class StatusInjector {
                         Element connection = TalendComponentsHelper.getNewMainConnectionComponentWithoutSchema(
                             doc,
                             tRestRequestName,
-                            DEFAULT_T_JAVA_ROW_UNIQUE_NAME
+                            DEFAULT_T_JAVA_ROW_UNIQUE_NAME,
+                            DEFAULT_STATUS_OUTPUT_FLOW_UNIQUE_NAME
                         );
                         doc.getDocumentElement().appendChild(connection);
                         System.out.println("connection: " + tRestRequestName +
