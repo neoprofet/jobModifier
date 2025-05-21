@@ -9,31 +9,41 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
+import java.util.function.Predicate;
 
 public class FileHelper {
 
-    public static Optional<File> findFileInDirectory(File dir, String targetName) {
-        if (dir == null || !dir.exists()) {
-            return Optional.empty();
+    private static List<File> getFilesMatching(File dir, Predicate<File> matcher) {
+        List<File> result = new ArrayList<>();
+        if (dir == null || !dir.exists() || !dir.isDirectory()) {
+            return result;
         }
 
         File[] files = dir.listFiles();
-        if (files == null) {
-            return Optional.empty();
-        }
+        if (files == null) return result;
 
         for (File file : files) {
             if (file.isDirectory()) {
-                Optional<File> result = findFileInDirectory(file, targetName);
-                if (result.isPresent()) {
-                    return result;
-                }
-            } else if (file.getName().equals(targetName)) {
-                return Optional.of(file);
+                result.addAll(getFilesMatching(file, matcher));
+            } else if (matcher.test(file)) {
+                result.add(file);
             }
         }
-        return Optional.empty();
+
+        return result;
+    }
+
+    public static Optional<File> findFileInDirectory(File dir, String targetName) {
+        return getFilesMatching(dir, file -> file.getName().equals(targetName))
+            .stream()
+            .findFirst();
+    }
+
+    public static List<File> findFilesContainingNamePart(File dir, String namePart) {
+        return getFilesMatching(dir, file -> file.getName().contains(namePart));
     }
 
     public static Optional<File> resolveSubdirectoryUpwards(File startFile, String targetSubdirectoryName) {

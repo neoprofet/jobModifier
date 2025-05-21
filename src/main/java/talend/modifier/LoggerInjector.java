@@ -1,7 +1,11 @@
 package talend.modifier;
 
 import org.w3c.dom.*;
+
+import java.io.File;
+import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class LoggerInjector {
     public static final String DEFAULT_TJAVA_UNIQUE_NAME = "__logconfig__";
@@ -13,6 +17,7 @@ public class LoggerInjector {
 
             if (jobNamesAndVersions.isEmpty()) {
                 System.out.println("No cTalendJob references found in route.");
+                return;
             }
 
             for (Map.Entry<String, String> entry : jobNamesAndVersions.entrySet()) {
@@ -22,14 +27,43 @@ public class LoggerInjector {
                     entry.getValue()
                 );
                 System.out.println("Injecting into: " + jobPath);
-                processJobItemFile(jobPath, newCode);
+                processItemFile(jobPath, newCode);
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    private static void processJobItemFile(String jobPath, String newCode) throws Exception {
+    public static void injectLoggerCodeToAllServicesByRoute(String routeItemPath, String newCode) {
+        try {
+            File processDir = FileHelper.resolveSubdirectoryUpwards(new File(routeItemPath),
+                "process").orElseThrow(
+                () -> new IOException("Directory process not found upwards from: " +
+                    routeItemPath)
+            );
+
+            List<File> svcItems = FileHelper.findFilesContainingNamePart(processDir, "SVC")
+                .stream()
+                .filter(file -> file.getName().endsWith(".item"))
+                .collect(Collectors.toList());
+
+            if (svcItems.isEmpty()) {
+                System.out.println("No SVCs items found in project.");
+                return;
+            }
+
+            for (File f : svcItems) {
+                System.out.println("Injecting into: " + f.getAbsolutePath());
+                processItemFile(f.getAbsolutePath(), newCode);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    private static void processItemFile(String jobPath, String newCode) throws Exception {
 
         Document doc = FileHelper.loadDocument(jobPath);
         doc.getDocumentElement().normalize();

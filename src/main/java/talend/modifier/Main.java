@@ -13,11 +13,15 @@ public class Main {
         String itemPath = args[1];
 
         switch (flag) {
-            case "--s":
+            case "--status-svc":
                 StatusInjector.injectStatusToService(itemPath);
                 break;
-            case "--l":
+            case "--log-route":
                 LoggerInjector.injectLoggerCodeToAllJobsOfRoute(itemPath,
+                    ExternalCode.T_JAVA_LOGCONFIG_CODE);
+                break;
+            case "--log-svcs":
+                LoggerInjector.injectLoggerCodeToAllServicesByRoute(itemPath,
                     ExternalCode.T_JAVA_LOGCONFIG_CODE);
                 break;
             default:
@@ -30,8 +34,12 @@ public class Main {
         if (error != null) {
             System.out.println(error + "\n");
         }
-        System.out.println("Usage: --s|--l <serviceItemPath>|<routeItemPath>");
-        System.out.println("--s for status injection");
-        System.out.println("--l for log code injection");
+        System.out.println("Usage:");
+        System.out.println("  --status-svc <svcItemPath>    " +
+            "Injects status handling into the specified service.");
+        System.out.println("  --log-route <routeItemPath>   " +
+            "Injects logging code into the main job(s) of the specified route.");
+        System.out.println("  --log-svcs <routeItemPath>    " +
+            "Injects logging code into all services of the project, resolved via the specified route.");
     }
 }
