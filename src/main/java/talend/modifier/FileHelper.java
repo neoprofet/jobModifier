@@ -16,6 +16,12 @@ import java.util.function.Predicate;
 
 public class FileHelper {
 
+    public static Optional<File> findFileInDirectory(File dir, String targetName) {
+        return getFilesMatching(dir, file -> file.getName().equals(targetName))
+            .stream()
+            .findFirst();
+    }
+
     private static List<File> getFilesMatching(File dir, Predicate<File> matcher) {
         List<File> result = new ArrayList<>();
         if (dir == null || !dir.exists() || !dir.isDirectory()) {
@@ -34,16 +40,6 @@ public class FileHelper {
         }
 
         return result;
-    }
-
-    public static Optional<File> findFileInDirectory(File dir, String targetName) {
-        return getFilesMatching(dir, file -> file.getName().equals(targetName))
-            .stream()
-            .findFirst();
-    }
-
-    public static List<File> findFilesContainingNamePart(File dir, String namePart) {
-        return getFilesMatching(dir, file -> file.getName().contains(namePart));
     }
 
     public static Optional<File> resolveSubdirectoryUpwards(File startFile, String targetSubdirectoryName) {

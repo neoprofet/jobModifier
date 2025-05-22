@@ -5,7 +5,8 @@ public class Main {
     public static void main(String[] args) {
 
         if (args.length < 2) {
-            showUsage("The number of arguments is less than necessary; exactly two are needed.");
+            showUsage("The number of arguments is less than necessary;" +
+                " exactly two are needed.");
             return;
         }
 
@@ -20,8 +21,8 @@ public class Main {
                 LoggerInjector.injectLoggerCodeToAllJobsOfRoute(itemPath,
                     ExternalCode.T_JAVA_LOGCONFIG_CODE);
                 break;
-            case "--log-svcs":
-                LoggerInjector.injectLoggerCodeToAllServicesByRoute(itemPath,
+            case "--log-item":
+                LoggerInjector.injectLoggerCodeToItem(itemPath,
                     ExternalCode.T_JAVA_LOGCONFIG_CODE);
                 break;
             default:
@@ -35,11 +36,11 @@ public class Main {
             System.out.println(error + "\n");
         }
         System.out.println("Usage:");
-        System.out.println("  --status-svc <svcItemPath>    " +
+        System.out.println("  --status-svc <itemPath>    " +
             "Injects status handling into the specified service.");
-        System.out.println("  --log-route <routeItemPath>   " +
-            "Injects logging code into the main job(s) of the specified route.");
-        System.out.println("  --log-svcs <routeItemPath>    " +
-            "Injects logging code into all services of the project, resolved via the specified route.");
+        System.out.println("  --log-route <itemPath>   " +
+            "Injects logging code into the main item(s) of the specified route.");
+        System.out.println("  --log-item <itemPath>    " +
+            "Injects logging code into the specified item");
     }
 }

@@ -3,9 +3,7 @@ package talend.modifier;
 import org.w3c.dom.*;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class LoggerInjector {
     public static final String DEFAULT_TJAVA_UNIQUE_NAME = "__logconfig__";
@@ -34,38 +32,31 @@ public class LoggerInjector {
         }
     }
 
-    public static void injectLoggerCodeToAllServicesByRoute(String routeItemPath, String newCode) {
-        try {
-            File processDir = FileHelper.resolveSubdirectoryUpwards(new File(routeItemPath),
-                "process").orElseThrow(
-                () -> new IOException("Directory process not found upwards from: " +
-                    routeItemPath)
-            );
+    public static void injectLoggerCodeToItem(String itemPathToInject, String newCode) {
+        File file = Optional.ofNullable(itemPathToInject)
+            .map(File::new)
+            .orElseThrow(() -> new IllegalArgumentException("Path is null"));
 
-            List<File> svcItems = FileHelper.findFilesContainingNamePart(processDir, "SVC")
-                .stream()
-                .filter(file -> file.getName().endsWith(".item"))
-                .collect(Collectors.toList());
-
-            if (svcItems.isEmpty()) {
-                System.out.println("No SVCs items found in project.");
-                return;
-            }
-
-            for (File f : svcItems) {
-                System.out.println("Injecting into: " + f.getAbsolutePath());
-                processItemFile(f.getAbsolutePath(), newCode);
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
+        if (!file.exists() || !file.isFile()) {
+            throw new IllegalArgumentException("Path does not exist or is not a file: "
+                + file.getAbsolutePath());
         }
 
+        if (!file.getName().endsWith(".item")) {
+            throw new IllegalArgumentException("Not a .item file: " +
+                file.getAbsolutePath());
+        }
+
+        try {
+            LoggerInjector.processItemFile(file.getAbsolutePath(), newCode);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
-    private static void processItemFile(String jobPath, String newCode) throws Exception {
+    public static void processItemFile(String itemPath, String newCode) throws Exception {
 
-        Document doc = FileHelper.loadDocument(jobPath);
+        Document doc = FileHelper.loadDocument(itemPath);
         doc.getDocumentElement().normalize();
         Element root = doc.getDocumentElement();
 
@@ -76,7 +67,11 @@ public class LoggerInjector {
                 return TalendComponentsHelper.DEFAULT_PREJOB_UNIQUE_NAME;
             });
 
-        if (!TalendComponentsHelper.hasComponentExists(doc, DEFAULT_TJAVA_UNIQUE_NAME, "UNIQUE_NAME")) {
+        if (!TalendComponentsHelper.hasComponentExists(
+            doc,
+            DEFAULT_TJAVA_UNIQUE_NAME,
+            "UNIQUE_NAME"
+        )) {
 
             Element tJavaWithCustomCodeNode = TalendComponentsHelper.getNewTJavaComponent(
                 doc,
@@ -94,9 +89,13 @@ public class LoggerInjector {
             );
         }
 
-        TalendComponentsHelper.connectOneComponentToTheOther(doc, prejobName, DEFAULT_TJAVA_UNIQUE_NAME);
+        TalendComponentsHelper.connectOneComponentToTheOther(
+            doc,
+            prejobName,
+            DEFAULT_TJAVA_UNIQUE_NAME
+        );
 
-        FileHelper.saveDocument(doc, jobPath);
-        System.out.println("Processing completed for: " + jobPath);
+        FileHelper.saveDocument(doc, itemPath);
+        System.out.println("Processing completed for: " + itemPath);
     }
 }
